@@ -1,2 +1,5 @@
 ﻿venv
 vids
+bin/ffprobe.exe
+bin/ffmpeg.exe
+bin/ffplay.exe
