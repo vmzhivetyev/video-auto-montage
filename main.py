@@ -10,19 +10,6 @@ import os
 ffmpeg_cmd = 'bin/ffmpeg.exe'
 
 
-# in1 = ffmpeg.input('vids/Desktop 08.28.2017 - 16.41.29.05.DVR.mp4')
-# in2 = ffmpeg.input('in2.mp4')
-# v1 = in1.video.hflip()
-# a1 = in1.audio
-# v2 = in2.video.filter('reverse').filter('hue', s=0)
-# a2 = in2.audio.filter('areverse').filter('aphaser')
-# joined = ffmpeg.concat(v1, a1, v2, a2, v=1, a=1).node
-# v3 = joined[0]
-# a3 = joined[1].filter('volume', 0.8)
-# out = ffmpeg.output(v3, a3, 'out.mp4')
-# out.run()
-
-
 class FFmpegProcessor:
     def __init__(self):
         self.cmd = ffmpeg_cmd
@@ -206,10 +193,8 @@ def make_sec_ranges(filename):
     ranges = filter_ranges(ranges, 1)
 
     sec_ranges = [(x[0] / sample_rate, x[1] / sample_rate) for x in ranges]
-    time_ranges = [(sec_to_time(x[0]), sec_to_time(x[1])) for x in sec_ranges]
 
     print(sec_ranges)
-    #print(time_ranges)
 
     return sec_ranges
 
@@ -249,13 +234,11 @@ def cut_video_into_single(filename, out_dir):
         concat_ranges(filename, out_filename, sec_ranges)
 
 
-video_file_1 = "vids/Desktop 08.28.2017 - 16.41.29.05.DVR.mp4"  # 1:05 - 1:20 silenced scar
-video_file_2 = "vids/Desktop 08.31.2017 - 22.50.22.05.DVR.mp4"  # 4:25 - 4:40 akm
+# video_file_1 = "vids/Desktop 08.28.2017 - 16.41.29.05.DVR.mp4"  # 1:05 - 1:20 silenced scar
+# video_file_2 = "vids/Desktop 08.31.2017 - 22.50.22.05.DVR.mp4"  # 4:25 - 4:40 akm
 
 # cut_video_into_parts(video_file_1)
 # cut_video_into_parts(video_file_2)
-
-# cut_video_into_single(video_file_1)
 
 # plot_audio(video_file_1, (4, 20), (4, 40), sample_rate)
 # plot_audio(video_file_2, (0, 50), (0, 60), sample_rate)
@@ -264,8 +247,6 @@ def file_list_from_dir(dir_path):
     return [os.path.join(dir_path, x) for x in os.listdir(dir_path)]
 
 
-files = file_list_from_dir("E:/ShadowPlay-old/NvidiaReplays/PLAYERUNKNOWN'S BATTLEGROUNDS/")
-files = file_list_from_dir("E:/ShadowPlay-old/NvidiaReplays/Squad/")
 files = file_list_from_dir("E:/shadow play/replays/Apex Legends/")
 
 for file in files:
