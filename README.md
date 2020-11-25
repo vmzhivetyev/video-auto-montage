@@ -1,5 +1,5 @@
 # video-auto-montage
-Generic script which extracts potentialy interesting moment out of capture game video based on audio peaks.
+This script extracts potentialy interesting moments (based on audio peaks) out of a game screen capture video.
 
 # Installation (Windows)
 
