@@ -49,7 +49,7 @@ sample_rate = 44100
 
 def peak_ranges(audio, max_distance_sec, min_count, sample_rate):
     # todo: widen ranges by lets say 1 second
-    peaks, _ = find_peaks(audio, height=0.9, threshold=0.2)
+    peaks, _ = find_peaks(audio, height=0.8, threshold=0.1)
 
     max_distance = max_distance_sec * sample_rate
 
@@ -219,7 +219,7 @@ def make_sec_ranges(filename):
     time_ranges = [(sec_to_time(x[0]), sec_to_time(x[1])) for x in sec_ranges]
 
     print(sec_ranges)
-    print(time_ranges)
+    #print(time_ranges)
 
     return sec_ranges
 
