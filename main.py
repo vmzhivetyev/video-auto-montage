@@ -266,8 +266,9 @@ def file_list_from_dir(dir_path):
 
 files = file_list_from_dir("E:/ShadowPlay-old/NvidiaReplays/PLAYERUNKNOWN'S BATTLEGROUNDS/")
 files = file_list_from_dir("E:/ShadowPlay-old/NvidiaReplays/Squad/")
+files = file_list_from_dir("E:/shadow play/replays/Apex Legends/")
 
 for file in files:
-    cut_video_into_single(file, 'vids/squad')
+    cut_video_into_single(file, 'vids/apex')
 # with open("vids/ranges.txt", "w") as ranges_log:
     #log_video_ranges(file, ranges_log)
