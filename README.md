@@ -3,7 +3,7 @@ This script extracts potentialy interesting moments (based on audio peaks) out o
 
 # Installation (Windows)
 
-Download ffmpeg build from https://github.com/BtbN/FFmpeg-Builds and place binaries into `bin`
+Download ffmpeg build from https://github.com/BtbN/FFmpeg-Builds and place binaries into `bin` folder
 
 # Usage
 
