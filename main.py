@@ -155,7 +155,7 @@ def cut_ranges(filename, ranges):
         count = count + 1
 
 
-def concat_ranges(filename, out_filename, ranges):
+def concat_ranges(filename, out_filename, ranges, mic_sound_volume_mult):
     """ ranges are in seconds """
     input_vid = ffmpeg.input(filename)
 
@@ -182,8 +182,7 @@ def concat_ranges(filename, out_filename, ranges):
                 .filter_('atrim', start=start, end=end)
                 .filter_('asetpts', 'PTS-STARTPTS')
         )
-
-        full_aud = ffmpeg.filter([aud, mic], 'amix', duration='shortest')
+        full_aud = ffmpeg.filter([aud, mic], 'amix', duration='shortest', weights=f'1 {mic_sound_volume_mult}')
 
         streams.append(vid)
         streams.append(full_aud)
@@ -228,7 +227,7 @@ def log_video_ranges(filename, log):
     for r in ranges:
         log.write(str(r) + '\n')
 
-def cut_video_into_single(filename, out_dir):
+def cut_video_into_single(filename, out_dir, mic_sound_volume_mult=1):
     out_filename = f'{out_dir}/{filename.split("/")[-1]}'
 
     if os.path.isfile(out_filename):
@@ -245,7 +244,7 @@ def cut_video_into_single(filename, out_dir):
         if not os.path.exists(out_dir):
             os.makedirs(out_dir)
 
-        concat_ranges(filename, out_filename, sec_ranges)
+        concat_ranges(filename, out_filename, sec_ranges, mic_sound_volume_mult)
 
 
 # video_file_1 = "vids/Desktop 08.28.2017 - 16.41.29.05.DVR.mp4"  # 1:05 - 1:20 silenced scar
@@ -264,6 +263,6 @@ def file_list_from_dir(dir_path):
 files = file_list_from_dir("E:/shadow play/replays/Apex Legends/")
 
 for file in files:
-    cut_video_into_single(file, 'vids/apex')
+    cut_video_into_single(file, 'vids/apex', mic_sound_volume_mult=3)
 # with open("vids/ranges.txt", "w") as ranges_log:
     #log_video_ranges(file, ranges_log)
