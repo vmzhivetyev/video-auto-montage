@@ -188,7 +188,7 @@ def concat_ranges(filename, out_filename, ranges):
         streams.append(full_aud)
 
     joined = ffmpeg.concat(*streams, v=1, a=1)
-    output = ffmpeg.output(joined, out_filename)
+    output = ffmpeg.output(joined, out_filename, vcodec='hevc_nvenc', video_bitrate='1m')
     output = output.global_args('-loglevel', 'error')
     output = ffmpeg.overwrite_output(output)
 
