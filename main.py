@@ -11,6 +11,38 @@ import time
 ffmpeg_cmd = 'bin/ffmpeg.exe'
 
 
+class VideoMontageConfig:
+    def __init__(self,
+                 input_dir,
+                 output_dir,
+                 bitrate_megabits=50,
+                 mic_volume_multiplier=3,
+                 peak_height=0.9,
+                 peak_threshold=0.15,
+                 max_seconds_between_peaks=4,
+                 min_count_of_peaks=2):
+        '''
+
+        :param input_dir:
+        :param output_dir:
+        :param bitrate_megabits:
+        :param mic_volume_multiplier:
+        :param peak_height:
+        :param peak_threshold:
+        :param max_seconds_between_peaks: distance between peaks to unite them to single time range
+        :param min_count_of_peaks: if count of peaks in range is less than this value than the range is ignored
+        '''
+        self.input_dir = input_dir
+        self.peak_threshold = peak_threshold
+        self.peak_height = peak_height
+        self.mic_volume_multiplier = mic_volume_multiplier
+        self.bitrate_megabits = bitrate_megabits
+        self.output_dir = output_dir
+        self.max_seconds_between_peaks = max_seconds_between_peaks
+        self.min_count_of_peaks = min_count_of_peaks
+        self.video_bitrate = str(int(self.bitrate_megabits * 1e6))
+
+
 class FFmpegProcessor:
     def __init__(self):
         self.cmd = ffmpeg_cmd
@@ -32,13 +64,19 @@ class FFmpegProcessor:
 
 ap = FFmpegProcessor()
 
-sample_rate = 44100
+SAMPLE_RATE = 44100
 
 
-def peak_ranges(audio, max_distance_sec, min_count, sample_rate):
-    peaks, _ = find_peaks(audio, height=0.9, threshold=0.2)
+def peak_ranges(audio, config: VideoMontageConfig):
+    """
+        max_distance_sec: max distance between peaks (in seconds) which can be used to increase count of peaks range
+        min_count: min count of peaks in range to include it in result
 
-    max_distance = max_distance_sec * sample_rate
+        :returns array of valid ranges
+    """
+    peaks, _ = find_peaks(audio, height=config.peak_height, threshold=config.peak_threshold)
+
+    max_distance = config.max_seconds_between_peaks * SAMPLE_RATE
 
     ranges = []
     start = -1
@@ -55,7 +93,7 @@ def peak_ranges(audio, max_distance_sec, min_count, sample_rate):
                 last = x
                 count = count + 1
             else:
-                if count >= min_count:
+                if count >= config.min_count_of_peaks:
                     ranges.append((start, last))
                 start = x
                 last = x
@@ -67,13 +105,18 @@ def peak_ranges(audio, max_distance_sec, min_count, sample_rate):
     return ranges
 
 
-def plot_audio(filename, start, end, sample_rate):
-    start, end = audio_range(sample_rate, start, end)
-    audio = ap.extract_audio(filename, sample_rate)[start:end]
+def plot_audio(filename, start, end):
+    start, end = audio_range(SAMPLE_RATE, start, end)
+    audio = ap.extract_audio(filename, SAMPLE_RATE)[start:end]
 
     plt.figure(1)
 
-    ranges = peak_ranges(audio, 2, 3, sample_rate)
+    ranges = peak_ranges(audio, VideoMontageConfig(None,
+                                                   None,
+                                                   peak_height=0.7,
+                                                   peak_threshold=0.15,
+                                                   max_seconds_between_peaks=2,
+                                                   min_count_of_peaks=3))
 
     plot_a = plt.subplot(211)
     plot_a.plot(audio)
@@ -89,7 +132,7 @@ def plot_audio(filename, start, end, sample_rate):
     plot_a.set_ylabel('energy')
 
     plot_b = plt.subplot(212)
-    plot_b.specgram(audio, NFFT=1024, Fs=sample_rate, noverlap=100)
+    plot_b.specgram(audio, NFFT=1024, Fs=SAMPLE_RATE, noverlap=100)
     plot_b.set_xlabel('Time')
     plot_b.set_ylabel('Frequency')
 
@@ -107,7 +150,7 @@ def audio_range(sample_rate, start_time=(0, 0), end_time=(0, 10)):
 
 
 def filter_ranges(ranges, min_length_sec):
-    min_length = min_length_sec * sample_rate
+    min_length = min_length_sec * SAMPLE_RATE
 
     def good(r):
         return (r[1] - r[0]) > min_length
@@ -122,6 +165,8 @@ def sec_to_time(sec):
 
 def cut_ranges(filename, ranges):
     """ ranges are in seconds """
+    raise AssertionError('Deprecated! Look at concat_ranges!')
+
     input_vid = ffmpeg.input(filename)
 
     dir = f'{filename[:-4]}'
@@ -155,17 +200,21 @@ def cut_ranges(filename, ranges):
         count = count + 1
 
 
-def concat_ranges(filename, out_filename, ranges, mic_sound_volume_mult):
+def concat_ranges(filename, out_filename, ranges, config: VideoMontageConfig):
     """ ranges are in seconds """
+
+    assert os.path.isfile(filename)
+
     input_vid = ffmpeg.input(filename)
 
-    print(f'Processing {out_filename} ({len(ranges)} ranges)')
+    total_duration = sum([x[1] - x[0] for x in ranges])
+    print(f'Processing {out_filename} ({len(ranges)} ranges -> {total_duration:.0f} seconds)')
 
     streams = []
 
     for r in ranges:
         start = int(r[0])
-        end = math.ceil(r[1])
+        end = math.floor(r[1])
 
         vid = (
             input_vid
@@ -182,69 +231,73 @@ def concat_ranges(filename, out_filename, ranges, mic_sound_volume_mult):
                 .filter_('atrim', start=start, end=end)
                 .filter_('asetpts', 'PTS-STARTPTS')
         )
-        full_aud = ffmpeg.filter([aud, mic], 'amix', duration='shortest', weights=f'1 {mic_sound_volume_mult}')
+        full_aud = ffmpeg.filter([aud, mic], 'amix', duration='shortest', weights=f'1 {config.mic_volume_multiplier}')
 
         streams.append(vid)
         streams.append(full_aud)
 
     joined = ffmpeg.concat(*streams, v=1, a=1)
-    output = ffmpeg.output(joined, out_filename, vcodec='hevc_nvenc', video_bitrate='1m')
+    output = ffmpeg.output(joined, out_filename, vcodec='hevc_nvenc', video_bitrate=config.video_bitrate)
     output = output.global_args('-loglevel', 'error')
     output = ffmpeg.overwrite_output(output)
 
     start_time = time.time()
-    print(' '.join([f'"{x}"' for x in ffmpeg.compile(output, cmd=ffmpeg_cmd)]).replace('/', '\\'))
+    # print(' '.join([f'"{x}"' for x in ffmpeg.compile(output, cmd=ffmpeg_cmd)]).replace('/', '\\'))
     output.run(cmd=ffmpeg_cmd)
     elapsed = time.time() - start_time
     print(f'Elapsed {elapsed:.2f} seconds\n')
 
 
-def make_sec_ranges(filename):
-    audio = ap.extract_audio(filename, sample_rate)
+def make_sec_ranges(filename, config: VideoMontageConfig):
+    audio = ap.extract_audio(filename, SAMPLE_RATE)
 
-    ranges = peak_ranges(audio, 4, 2, sample_rate)
+    ranges = peak_ranges(audio, config)
     ranges = filter_ranges(ranges, 1)
 
-    sec_ranges = [(x[0] / sample_rate, x[1] / sample_rate) for x in ranges]
-
-    print(sec_ranges)
-
+    sec_ranges = [(x[0] / SAMPLE_RATE, x[1] / SAMPLE_RATE) for x in ranges]
     return sec_ranges
 
 
-def cut_video_into_parts(filename):
-    sec_ranges = make_sec_ranges(filename)
+def cut_video_into_parts(filename, config: VideoMontageConfig):
+    sec_ranges = make_sec_ranges(filename, config=config)
     cut_ranges(filename, sec_ranges)
 
 
 def print_log(msg):
-    with open("vids/skipped.txt", "a") as myfile:
-        myfile.write(msg)
+    print(msg)
+    # with open("vids/skipped.txt", "a") as file:
+    #     file.write(msg)
 
-def log_video_ranges(filename, log):
-    ranges = make_sec_ranges(filename)
+
+def log_video_ranges(ranges, filename, log):
     log.write(filename + '\n')
     for r in ranges:
         log.write(str(r) + '\n')
 
-def cut_video_into_single(filename, out_dir, mic_sound_volume_mult=1):
-    out_filename = f'{out_dir}/{filename.split("/")[-1]}'
+
+def cut_video_into_single(filename, config: VideoMontageConfig):
+    out_filename = os.path.join(config.output_dir, os.path.basename(filename))
+
+    os.makedirs(os.path.dirname(out_filename), exist_ok=True)
 
     if os.path.isfile(out_filename):
         print_log(f"Already exists '{out_filename}'")
         return
 
-    sec_ranges = make_sec_ranges(filename)
+    sec_ranges = make_sec_ranges(filename, config=config)
+
+    # with open("vids/ranges.txt", "w") as ranges_log:
+    #     log_video_ranges(sec_ranges, filename, ranges_log)
 
     if len(sec_ranges) == 0:
-        print_log(f"!!!!! NO RANGES FOR FILE '{filename}' !!!!! ")
+        print_log(f"No ranges for file '{filename}'")
     else:
-        print_log(f"{len(sec_ranges)} for '{filename}'")
+        print_log(f"Found {len(sec_ranges)} for '{filename}'")
 
-        if not os.path.exists(out_dir):
-            os.makedirs(out_dir)
+        if not os.path.exists(config.output_dir):
+            os.makedirs(config.output_dir)
 
-        concat_ranges(filename, out_filename, sec_ranges, mic_sound_volume_mult)
+        concat_ranges(filename, out_filename, sec_ranges, config=config)
 
 
 # video_file_1 = "vids/Desktop 08.28.2017 - 16.41.29.05.DVR.mp4"  # 1:05 - 1:20 silenced scar
@@ -260,9 +313,30 @@ def file_list_from_dir(dir_path):
     return [os.path.join(dir_path, x) for x in os.listdir(dir_path)]
 
 
-files = file_list_from_dir("E:/shadow play/replays/Apex Legends/")
+def run_file(input_file, config: VideoMontageConfig):
+    cut_video_into_single(filename=input_file, config=config)
 
-for file in files:
-    cut_video_into_single(file, 'vids/apex', mic_sound_volume_mult=3)
-# with open("vids/ranges.txt", "w") as ranges_log:
-    #log_video_ranges(file, ranges_log)
+
+def run_directory(config: VideoMontageConfig):
+    for file in file_list_from_dir(config.input_dir):
+        run_file(input_file=file, config=config)
+
+
+if __name__ == "__main__":
+    pubg = VideoMontageConfig(
+        input_dir='E:/shadow play/replays/PLAYERUNKNOWN\'S BATTLEGROUNDS',
+        output_dir='vids/pubg',
+        bitrate_megabits=50,
+        mic_volume_multiplier=3,
+        peak_height=0.9,
+        peak_threshold=0.2)
+
+    apex = VideoMontageConfig(
+        input_dir='E:/shadow play/replays/Apex Legends',
+        output_dir='vids/apex',
+        bitrate_megabits=50,
+        mic_volume_multiplier=3,
+        peak_height=0.6,
+        peak_threshold=0.1)
+
+    run_directory(config=apex)
