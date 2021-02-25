@@ -6,6 +6,7 @@ from scipy.signal import find_peaks
 from matplotlib.pyplot import figure
 import math
 import os
+import time
 
 ffmpeg_cmd = 'bin/ffmpeg.exe'
 
@@ -192,8 +193,11 @@ def concat_ranges(filename, out_filename, ranges):
     output = output.global_args('-loglevel', 'error')
     output = ffmpeg.overwrite_output(output)
 
+    start_time = time.time()
     print(' '.join([f'"{x}"' for x in ffmpeg.compile(output, cmd=ffmpeg_cmd)]).replace('/', '\\'))
     output.run(cmd=ffmpeg_cmd)
+    elapsed = time.time() - start_time
+    print(f'Elapsed {elapsed:.2f} seconds\n')
 
 
 def make_sec_ranges(filename):
