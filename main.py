@@ -172,17 +172,27 @@ def concat_ranges(filename, out_filename, ranges):
                 .setpts('PTS-STARTPTS')
         )
         aud = (
-            input_vid
+            input_vid['a:0']
+                .filter_('atrim', start=start, end=end)
+                .filter_('asetpts', 'PTS-STARTPTS')
+        )
+        mic = (
+            input_vid['a:1']
                 .filter_('atrim', start=start, end=end)
                 .filter_('asetpts', 'PTS-STARTPTS')
         )
 
+        full_aud = ffmpeg.filter([aud, mic], 'amix', duration='shortest')
+
         streams.append(vid)
-        streams.append(aud)
+        streams.append(full_aud)
 
     joined = ffmpeg.concat(*streams, v=1, a=1)
     output = ffmpeg.output(joined, out_filename)
+    output = output.global_args('-loglevel', 'verbose')
     output = ffmpeg.overwrite_output(output)
+
+    print(' '.join([f'"{x}"' for x in ffmpeg.compile(output, cmd=ffmpeg_cmd)]).replace('/', '\\'))
     output.run(cmd=ffmpeg_cmd)
 
 
