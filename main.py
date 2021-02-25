@@ -20,9 +20,10 @@ class VideoMontageConfig:
                  peak_height=0.9,
                  peak_threshold=0.15,
                  max_seconds_between_peaks=4,
-                 min_count_of_peaks=2):
+                 min_count_of_peaks=2,
+                 min_duration_of_valid_range=1,
+                 extend_range_bounds_by_seconds=2):
         '''
-
         :param input_dir:
         :param output_dir:
         :param bitrate_megabits:
@@ -31,6 +32,8 @@ class VideoMontageConfig:
         :param peak_threshold:
         :param max_seconds_between_peaks: distance between peaks to unite them to single time range
         :param min_count_of_peaks: if count of peaks in range is less than this value than the range is ignored
+        :param min_duration_of_valid_range
+        :param extend_range_bounds_by_seconds
         '''
         self.input_dir = input_dir
         self.peak_threshold = peak_threshold
@@ -40,7 +43,12 @@ class VideoMontageConfig:
         self.output_dir = output_dir
         self.max_seconds_between_peaks = max_seconds_between_peaks
         self.min_count_of_peaks = min_count_of_peaks
-        self.video_bitrate = str(int(self.bitrate_megabits * 1e6))
+        self.min_duration_of_valid_range = min_duration_of_valid_range
+        self.extend_range_bounds_by_seconds = extend_range_bounds_by_seconds
+
+    @property
+    def video_bitrate(self):
+        return str(int(self.bitrate_megabits * 1e6))
 
 
 class FFmpegProcessor:
@@ -149,14 +157,14 @@ def audio_range(sample_rate, start_time=(0, 0), end_time=(0, 10)):
     return int(sample_rate * time_to_sec(start_time)), int(sample_rate * time_to_sec(end_time))
 
 
-def filter_ranges(ranges, min_length_sec):
-    min_length = min_length_sec * SAMPLE_RATE
+def filter_ranges(ranges, config: VideoMontageConfig):
+    min_length = config.min_duration_of_valid_range * SAMPLE_RATE
 
-    def good(r):
-        return (r[1] - r[0]) > min_length
+    goods = [x for x in ranges if x[1] - x[0] > min_length]
 
-    goods = [x for x in ranges if good(x)]
-    return [(x[0] - 2, x[1] + 2) for x in goods]
+    return [(x[0] - config.extend_range_bounds_by_seconds,
+             x[1] + config.extend_range_bounds_by_seconds)
+            for x in goods]
 
 
 def sec_to_time(sec):
@@ -251,8 +259,8 @@ def concat_ranges(filename, out_filename, ranges, config: VideoMontageConfig):
 def make_sec_ranges(filename, config: VideoMontageConfig):
     audio = ap.extract_audio(filename, SAMPLE_RATE)
 
-    ranges = peak_ranges(audio, config)
-    ranges = filter_ranges(ranges, 1)
+    ranges = peak_ranges(audio, config=config)
+    ranges = filter_ranges(ranges, config=config)
 
     sec_ranges = [(x[0] / SAMPLE_RATE, x[1] / SAMPLE_RATE) for x in ranges]
     return sec_ranges
@@ -337,6 +345,11 @@ if __name__ == "__main__":
         bitrate_megabits=50,
         mic_volume_multiplier=3,
         peak_height=0.6,
-        peak_threshold=0.1)
+        peak_threshold=0.2,
+        max_seconds_between_peaks=4,
+        min_count_of_peaks=1,
+        extend_range_bounds_by_seconds=1,
+        min_duration_of_valid_range=0
+    )
 
     run_directory(config=apex)
