@@ -189,7 +189,7 @@ def concat_ranges(filename, out_filename, ranges):
 
     joined = ffmpeg.concat(*streams, v=1, a=1)
     output = ffmpeg.output(joined, out_filename)
-    output = output.global_args('-loglevel', 'verbose')
+    output = output.global_args('-loglevel', 'error')
     output = ffmpeg.overwrite_output(output)
 
     print(' '.join([f'"{x}"' for x in ffmpeg.compile(output, cmd=ffmpeg_cmd)]).replace('/', '\\'))
