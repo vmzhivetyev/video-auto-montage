@@ -363,7 +363,7 @@ if __name__ == "__main__":
         output_dir='vids/apex',
         bitrate_megabits=1,
         mic_volume_multiplier=3,
-        peak_height=0.6,
+        peak_height=0.8,
         peak_threshold=0.2,
         max_seconds_between_peaks=1.1,
         min_count_of_peaks=1,
