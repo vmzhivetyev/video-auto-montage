@@ -19,10 +19,10 @@ class VideoMontageConfig:
                  mic_volume_multiplier=3,
                  peak_height=0.9,
                  peak_threshold=0.15,
-                 max_seconds_between_peaks=4,
+                 max_seconds_between_peaks: float = 4,
                  min_count_of_peaks=2,
-                 min_duration_of_valid_range=1,
-                 extend_range_bounds_by_seconds=2):
+                 min_duration_of_valid_range: float = 1,
+                 extend_range_bounds_by_seconds: float = 2):
         '''
         :param input_dir:
         :param output_dir:
@@ -84,7 +84,7 @@ def peak_ranges(audio, config: VideoMontageConfig):
     """
     peaks, _ = find_peaks(audio, height=config.peak_height, threshold=config.peak_threshold)
 
-    max_distance = config.max_seconds_between_peaks * SAMPLE_RATE
+    max_distance = int(config.max_seconds_between_peaks * SAMPLE_RATE)
 
     ranges = []
     start = -1
@@ -97,7 +97,7 @@ def peak_ranges(audio, config: VideoMontageConfig):
             count = 1
         else:
             dist = x - last
-            if dist < max_distance:
+            if dist <= max_distance:
                 last = x
                 count = count + 1
             else:
@@ -158,13 +158,9 @@ def audio_range(sample_rate, start_time=(0, 0), end_time=(0, 10)):
 
 
 def filter_ranges(ranges, config: VideoMontageConfig):
-    min_length = config.min_duration_of_valid_range * SAMPLE_RATE
+    min_length = int(config.min_duration_of_valid_range * SAMPLE_RATE)
 
-    goods = [x for x in ranges if x[1] - x[0] > min_length]
-
-    return [(x[0] - config.extend_range_bounds_by_seconds,
-             x[1] + config.extend_range_bounds_by_seconds)
-            for x in goods]
+    return [x for x in ranges if x[1] - x[0] >= min_length]
 
 
 def sec_to_time(sec):
@@ -263,7 +259,30 @@ def make_sec_ranges(filename, config: VideoMontageConfig):
     ranges = filter_ranges(ranges, config=config)
 
     sec_ranges = [(x[0] / SAMPLE_RATE, x[1] / SAMPLE_RATE) for x in ranges]
-    return sec_ranges
+
+    sec_ranges = [[x[0] - config.extend_range_bounds_by_seconds,
+                   x[1] + config.extend_range_bounds_by_seconds]
+                  for x in sec_ranges]
+
+    def weld_overlapping_ranges():
+        i = 0
+        dropped = []
+        while i < len(sec_ranges) - 1:
+            if sec_ranges[i][1] > sec_ranges[i+1][0]:
+                sec_ranges[i][1] = sec_ranges[i+1][1]
+                dropped.append(i + 1)
+                i += 1
+            i += 1
+
+        result = [x for idx, x in enumerate(sec_ranges) if idx not in dropped]
+        return result
+
+    new_ranges = weld_overlapping_ranges()
+    while len(new_ranges) < len(sec_ranges):
+        sec_ranges = new_ranges
+        new_ranges = weld_overlapping_ranges()
+
+    return new_ranges
 
 
 def cut_video_into_parts(filename, config: VideoMontageConfig):
@@ -342,11 +361,11 @@ if __name__ == "__main__":
     apex = VideoMontageConfig(
         input_dir='E:/shadow play/replays/Apex Legends',
         output_dir='vids/apex',
-        bitrate_megabits=50,
+        bitrate_megabits=1,
         mic_volume_multiplier=3,
         peak_height=0.6,
         peak_threshold=0.2,
-        max_seconds_between_peaks=4,
+        max_seconds_between_peaks=1.1,
         min_count_of_peaks=1,
         extend_range_bounds_by_seconds=1,
         min_duration_of_valid_range=0
