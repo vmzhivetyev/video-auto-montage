@@ -361,13 +361,13 @@ if __name__ == "__main__":
     apex = VideoMontageConfig(
         input_dir='E:/shadow play/replays/Apex Legends',
         output_dir='vids/apex',
-        bitrate_megabits=1,
+        bitrate_megabits=50,
         mic_volume_multiplier=3,
-        peak_height=0.8,
-        peak_threshold=0.2,
-        max_seconds_between_peaks=1.1,
+        peak_height=0.6,
+        peak_threshold=0.1,
+        max_seconds_between_peaks=2,
         min_count_of_peaks=1,
-        extend_range_bounds_by_seconds=1,
+        extend_range_bounds_by_seconds=4,
         min_duration_of_valid_range=0
     )
 

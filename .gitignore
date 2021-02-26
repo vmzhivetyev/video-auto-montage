@@ -3,3 +3,5 @@ vids
 bin/ffprobe.exe
 bin/ffmpeg.exe
 bin/ffplay.exe
+src
+venv2
