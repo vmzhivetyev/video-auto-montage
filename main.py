@@ -7,6 +7,7 @@ from matplotlib.pyplot import figure
 import math
 import os
 import time
+from matplotlib import mlab
 
 from peakdetect import peakdet
 
@@ -77,7 +78,54 @@ ap = FFmpegProcessor()
 SAMPLE_RATE = 44100
 
 
-def peak_ranges(audio, config: VideoMontageConfig):
+def make_fft(x, NFFT=None, Fs=None, Fc=None, detrend=None,
+             window=None, noverlap=None,
+             cmap=None, xextent=None, pad_to=None, sides=None,
+             scale_by_freq=None, mode=None, scale=None,
+             vmin=None, vmax=None, **kwargs):
+    if NFFT is None:
+        NFFT = 256  # same default as in mlab.specgram()
+    if Fc is None:
+        Fc = 0  # same default as in mlab._spectral_helper()
+    if noverlap is None:
+        noverlap = 128  # same default as in mlab.specgram()
+    if Fs is None:
+        Fs = 2  # same default as in mlab._spectral_helper()
+
+    if mode == 'complex':
+        raise ValueError('Cannot plot a complex specgram')
+
+    if scale is None or scale == 'default':
+        if mode in ['angle', 'phase']:
+            scale = 'linear'
+        else:
+            scale = 'dB'
+    elif mode in ['angle', 'phase'] and scale == 'dB':
+        raise ValueError('Cannot use dB scale with angle or phase mode')
+
+    spec, _, _ = mlab.specgram(x=x, NFFT=NFFT, Fs=Fs,
+                                   detrend=detrend, window=window,
+                                   noverlap=noverlap, pad_to=pad_to,
+                                   sides=sides,
+                                   scale_by_freq=scale_by_freq,
+                                   mode=mode)
+
+    return spec
+
+
+def fft_of_lows(audio):
+    speq = make_fft(audio, NFFT=256, Fs=SAMPLE_RATE, noverlap=100)
+    speq = np.array([x[:40] for x in speq.T]).T
+    low_freq_volumes = np.array([sum(x) * 1000 for x in speq.T]).T
+    return speq, low_freq_volumes
+
+
+def peak_ranges_of_lows(audio, config: VideoMontageConfig):
+    speq, lows = fft_of_lows(audio)
+    return peak_ranges(lows, config, mult=len(lows) / len(audio))
+
+
+def peak_ranges(audio, config: VideoMontageConfig, mult=1.0):
     """
         max_distance_sec: max distance between peaks (in seconds) which can be used to increase count of peaks range
         min_count: min count of peaks in range to include it in result
@@ -88,7 +136,7 @@ def peak_ranges(audio, config: VideoMontageConfig):
     # peaks_new, _ = peakdet(audio, delta=config.peak_threshold)
     # peaks_new = [int(x[0]) for x in peaks if x[1] >= config.peak_height]
 
-    max_distance = int(config.max_seconds_between_peaks * SAMPLE_RATE)
+    max_distance = int(config.max_seconds_between_peaks * SAMPLE_RATE * mult)
 
     ranges = []
     start = -1
@@ -114,6 +162,9 @@ def peak_ranges(audio, config: VideoMontageConfig):
     if start != -1 and last != -1:
         ranges.append((start, last))
 
+    peaks = [int(x/mult) for x in peaks]
+    ranges = [(int(x/mult), int(y/mult)) for x, y in ranges]
+
     return peaks, ranges
 
 
@@ -123,25 +174,31 @@ def plot_audio(filename, start, end, config: VideoMontageConfig):
 
     plt.figure(1)
 
-    peaks, ranges = peak_ranges(audio, config=config)
+    def show_data_and_peaks(plot, data, peaks, ranges):
+        plot.plot(data)
+        plot.plot(peaks, data[peaks], "x")
+        starts = [x[0] for x in ranges]
+        ends = [x[1] for x in ranges]
+        plot.plot(starts, [max(data) * 1.1]*len(starts), "g+")
+        plot.plot(ends, [max(data) * 1.1]*len(ends), "r+")
 
-    plot_a = plt.subplot(211)
-    plot_a.plot(audio)
-    plot_a.plot(peaks, audio[peaks], "x")
-    # plot_a.plot(np.convolve(audio, np.ones(50) / 50, mode='full'))
-
-    starts = [x[0] for x in ranges]
-    ends = [x[1] for x in ranges]
-    plot_a.plot(starts, [2]*len(starts), "g+")
-    plot_a.plot(ends, [2]*len(ends), "r+")
-
+    plot_a = plt.subplot(411)
+    show_data_and_peaks(plot_a, audio, *peak_ranges(audio, config=config))
     plot_a.set_xlabel('sample rate * time')
     plot_a.set_ylabel('energy')
 
-    plot_b = plt.subplot(212)
-    plot_b.specgram(audio, NFFT=1024, Fs=SAMPLE_RATE, noverlap=100)
+    plot_b = plt.subplot(412)
+    plot_b.specgram(audio, NFFT=256, Fs=SAMPLE_RATE, noverlap=100)
     plot_b.set_xlabel('Time')
     plot_b.set_ylabel('Frequency')
+
+    plot_c = plt.subplot(413)
+    speq, lows = fft_of_lows(audio)
+    plot_c.imshow(np.log(speq), cmap='viridis', aspect='auto')
+
+    plot_d = plt.subplot(414)
+    show_data_and_peaks(plot_d, lows, *peak_ranges(lows, config=config))
+
 
     plt.show()
 
@@ -254,7 +311,7 @@ def concat_ranges(filename, out_filename, ranges, config: VideoMontageConfig):
 def make_sec_ranges(filename, config: VideoMontageConfig):
     audio = ap.extract_audio(filename, SAMPLE_RATE)
 
-    _, ranges = peak_ranges(audio, config=config)
+    _, ranges = peak_ranges_of_lows(audio, config=config)
     ranges = filter_ranges(ranges, config=config)
 
     sec_ranges = [(x[0] / SAMPLE_RATE, x[1] / SAMPLE_RATE) for x in ranges]
@@ -331,6 +388,7 @@ def file_list_from_dir(dir_path):
 
 
 def run_file(input_file, config: VideoMontageConfig):
+    # plot_audio(input_file, (0, 00), (2, 00), config=config)
     cut_video_into_single(filename=input_file, config=config)
 
 
@@ -351,17 +409,17 @@ if __name__ == "__main__":
     apex = VideoMontageConfig(
         input_dir='E:/shadow play/replays/Apex Legends',
         output_dir='vids/apex',
-        bitrate_megabits=50,
+        bitrate_megabits=1,
         mic_volume_multiplier=3,
-        peak_height=0.6,
+        peak_height=1.7,
         peak_threshold=0.1,
-        max_seconds_between_peaks=2,
+        max_seconds_between_peaks=1,
         min_count_of_peaks=1,
-        extend_range_bounds_by_seconds=4,
+        extend_range_bounds_by_seconds=0.5,
         min_duration_of_valid_range=0
     )
 
     run_directory(config=apex)
 
-    # video_file_1 = "src/ap.mp4"  # 1:05 - 1:20 silenced scar
-    # plot_audio(video_file_1, (1, 52), (1, 55), config=apex)
+    # video_file_1 = "E:/shadow play/replays/Apex Legends/Apex Legends 2021.03.09 - 20.39.17.02.mp4"  # 1:05 - 1:20 silenced scar
+    # plot_audio(video_file_1, (2, 20), (2, 30), config=apex)
