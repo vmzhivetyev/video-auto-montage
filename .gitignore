@@ -5,3 +5,4 @@ bin/ffmpeg.exe
 bin/ffplay.exe
 src
 venv2
+__pycache__

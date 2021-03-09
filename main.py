@@ -8,6 +8,8 @@ import math
 import os
 import time
 
+from peakdetect import peakdet
+
 ffmpeg_cmd = 'bin/ffmpeg.exe'
 
 
@@ -83,6 +85,8 @@ def peak_ranges(audio, config: VideoMontageConfig):
         :returns array of valid ranges
     """
     peaks, _ = find_peaks(audio, height=config.peak_height, threshold=config.peak_threshold)
+    # peaks_new, _ = peakdet(audio, delta=config.peak_threshold)
+    # peaks_new = [int(x[0]) for x in peaks if x[1] >= config.peak_height]
 
     max_distance = int(config.max_seconds_between_peaks * SAMPLE_RATE)
 
@@ -110,31 +114,26 @@ def peak_ranges(audio, config: VideoMontageConfig):
     if start != -1 and last != -1:
         ranges.append((start, last))
 
-    return ranges
+    return peaks, ranges
 
 
-def plot_audio(filename, start, end):
+def plot_audio(filename, start, end, config: VideoMontageConfig):
     start, end = audio_range(SAMPLE_RATE, start, end)
     audio = ap.extract_audio(filename, SAMPLE_RATE)[start:end]
 
     plt.figure(1)
 
-    ranges = peak_ranges(audio, VideoMontageConfig(None,
-                                                   None,
-                                                   peak_height=0.7,
-                                                   peak_threshold=0.15,
-                                                   max_seconds_between_peaks=2,
-                                                   min_count_of_peaks=3))
+    peaks, ranges = peak_ranges(audio, config=config)
 
     plot_a = plt.subplot(211)
     plot_a.plot(audio)
-    # plot_a.plot(peaks, audio[peaks], "x")
+    plot_a.plot(peaks, audio[peaks], "x")
     # plot_a.plot(np.convolve(audio, np.ones(50) / 50, mode='full'))
 
     starts = [x[0] for x in ranges]
     ends = [x[1] for x in ranges]
-    plot_a.plot(starts, audio[starts], "g+")
-    plot_a.plot(ends, audio[ends], "r+")
+    plot_a.plot(starts, [2]*len(starts), "g+")
+    plot_a.plot(ends, [2]*len(ends), "r+")
 
     plot_a.set_xlabel('sample rate * time')
     plot_a.set_ylabel('energy')
@@ -255,7 +254,7 @@ def concat_ranges(filename, out_filename, ranges, config: VideoMontageConfig):
 def make_sec_ranges(filename, config: VideoMontageConfig):
     audio = ap.extract_audio(filename, SAMPLE_RATE)
 
-    ranges = peak_ranges(audio, config=config)
+    _, ranges = peak_ranges(audio, config=config)
     ranges = filter_ranges(ranges, config=config)
 
     sec_ranges = [(x[0] / SAMPLE_RATE, x[1] / SAMPLE_RATE) for x in ranges]
@@ -327,15 +326,6 @@ def cut_video_into_single(filename, config: VideoMontageConfig):
         concat_ranges(filename, out_filename, sec_ranges, config=config)
 
 
-# video_file_1 = "vids/Desktop 08.28.2017 - 16.41.29.05.DVR.mp4"  # 1:05 - 1:20 silenced scar
-# video_file_2 = "vids/Desktop 08.31.2017 - 22.50.22.05.DVR.mp4"  # 4:25 - 4:40 akm
-
-# cut_video_into_parts(video_file_1)
-# cut_video_into_parts(video_file_2)
-
-# plot_audio(video_file_1, (4, 20), (4, 40), sample_rate)
-# plot_audio(video_file_2, (0, 50), (0, 60), sample_rate)
-
 def file_list_from_dir(dir_path):
     return [os.path.join(dir_path, x) for x in os.listdir(dir_path)]
 
@@ -372,3 +362,6 @@ if __name__ == "__main__":
     )
 
     run_directory(config=apex)
+
+    # video_file_1 = "src/ap.mp4"  # 1:05 - 1:20 silenced scar
+    # plot_audio(video_file_1, (1, 52), (1, 55), config=apex)
