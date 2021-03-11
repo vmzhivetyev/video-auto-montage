@@ -9,15 +9,10 @@ Download ffmpeg build from https://github.com/BtbN/FFmpeg-Builds and place binar
 
 1) Edit `main.py`
 
-    Edit path to the directory containing videos to be processed:
-    ```
-    files = file_list_from_dir("E:/shadow play/replays/Apex Legends/")
-    ```
-
-    Edit output directory:
-    ```
-    cut_video_into_single(file, 'vids/apex')
-    ```
+    Look for config `apex = VideoMontageConfig(` in **main.py** and tune it for your needs or create a new one and use in `run_directory(config=apex)`.
+    
+    Config for PUBG is outdated but may work for version tagged **1.2** or older.
+    
 
 2) Run `main.py`
 3) ???
