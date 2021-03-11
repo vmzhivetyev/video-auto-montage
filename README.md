@@ -5,6 +5,8 @@ This script extracts potentialy interesting moments (based on audio peaks) out o
 
 Download ffmpeg build from https://github.com/BtbN/FFmpeg-Builds and place binaries into `bin` folder
 
+**Make sure you are using 64-bit Python** or you will experience memory overflow errors.
+
 # Usage
 
 1) Edit `main.py`
