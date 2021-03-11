@@ -19,3 +19,7 @@ Download ffmpeg build from https://github.com/BtbN/FFmpeg-Builds and place binar
 2) Run `main.py`
 3) ???
 4) PROFIT
+
+# Questions?
+
+Feel free to create an issue if you have any problems or questions.
