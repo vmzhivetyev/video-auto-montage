@@ -19,6 +19,7 @@ class VideoMontageConfig:
                  output_dir,
                  bitrate_megabits=50.0,
                  mic_volume_multiplier=3,
+                 freq_range=(0, 40),
                  peak_height=0.9,
                  peak_threshold=0.15,
                  max_seconds_between_peaks: float = 4,
@@ -31,6 +32,7 @@ class VideoMontageConfig:
         :param output_dir:
         :param bitrate_megabits:
         :param mic_volume_multiplier:
+        :param freq_range: range of frequencies to sum volume of
         :param peak_height:
         :param peak_threshold:
         :param max_seconds_between_peaks: distance between peaks to unite them to single time range
@@ -52,6 +54,7 @@ class VideoMontageConfig:
         self.min_duration_of_valid_range = min_duration_of_valid_range
         self.extend_range_bounds_by_seconds = extend_range_bounds_by_seconds
         self.mix_mic_audio_track = mix_mic_audio_track
+        self.freq_range = freq_range
 
     @property
     def video_bitrate(self):
@@ -117,15 +120,15 @@ def make_fft(x, NFFT=None, Fs=None, Fc=None, detrend=None,
     return spec
 
 
-def fft_of_lows(audio):
+def fft_of_lows(audio, config: VideoMontageConfig):
     speq = make_fft(audio, NFFT=256, Fs=SAMPLE_RATE, noverlap=100)
-    speq = np.array([x[:40] for x in speq.T]).T
+    speq = np.array([x[config.freq_range[0]:config.freq_range[1]] for x in speq.T]).T
     low_freq_volumes = np.array([sum(x) * 1000 for x in speq.T]).T
     return speq, low_freq_volumes
 
 
 def peak_ranges_of_lows(audio, config: VideoMontageConfig):
-    speq, lows = fft_of_lows(audio)
+    speq, lows = fft_of_lows(audio, config=config)
     return peak_ranges(lows, config, mult=len(lows) / len(audio))
 
 
@@ -197,7 +200,7 @@ def plot_audio(filename, start, end, config: VideoMontageConfig):
     plot_b.set_ylabel('Frequency')
 
     plot_c = plt.subplot(413)
-    speq, lows = fft_of_lows(audio)
+    speq, lows = fft_of_lows(audio, config=config)
     plot_c.imshow(np.log(speq), cmap='viridis', aspect='auto')
 
     plot_d = plt.subplot(414)
@@ -434,6 +437,7 @@ if __name__ == "__main__":
         output_dir='vids\Apex Legends',
         bitrate_megabits=50,
         mic_volume_multiplier=3,
+        freq_range=(0, 40),
         peak_height=1.3,
         peak_threshold=0.1,
         max_seconds_between_peaks=2,
@@ -444,5 +448,18 @@ if __name__ == "__main__":
 
     run_directory(config=apex)
 
-    # video_file_1 = "E:/shadow play/replays/Apex Legends/Apex Legends 2021.03.09 - 20.39.17.02.mp4"  # 1:05 - 1:20 silenced scar
-    # plot_audio(video_file_1, (2, 20), (2, 30), config=apex)
+    pubg = VideoMontageConfig(
+        input_dir="E:\\ShadowPlay-old\\NvidiaReplays\\PLAYERUNKNOWN'S BATTLEGROUNDS",
+        output_dir='vids/pubg',
+        bitrate_megabits=50,
+        mic_volume_multiplier=3,
+        freq_range=(10, 45),
+        peak_height=0.35,
+        peak_threshold=0.1,
+        max_seconds_between_peaks=2,
+        min_count_of_peaks=1,
+        extend_range_bounds_by_seconds=1,
+        mix_mic_audio_track=False,
+    )
+
+
