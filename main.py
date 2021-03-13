@@ -7,6 +7,7 @@ from matplotlib.pyplot import figure
 import math
 import os
 import time
+import re
 from matplotlib import mlab
 
 from peakdetect import peakdet
@@ -18,14 +19,15 @@ class VideoMontageConfig:
     def __init__(self,
                  input_dir,
                  output_dir,
-                 bitrate_megabits=50,
+                 bitrate_megabits=50.0,
                  mic_volume_multiplier=3,
                  peak_height=0.9,
                  peak_threshold=0.15,
                  max_seconds_between_peaks: float = 4,
                  min_count_of_peaks=2,
                  min_duration_of_valid_range: float = 1,
-                 extend_range_bounds_by_seconds: float = 2):
+                 extend_range_bounds_by_seconds: float = 2,
+                 mix_mic_audio_track: bool = True):
         '''
         :param input_dir:
         :param output_dir:
@@ -37,6 +39,9 @@ class VideoMontageConfig:
         :param min_count_of_peaks: if count of peaks in range is less than this value than the range is ignored
         :param min_duration_of_valid_range
         :param extend_range_bounds_by_seconds
+        :param mix_mic_audio_track:
+            if True - mix second audio track into resulting video
+            (shadow play can record your mic into separate audio track)
         '''
         self.input_dir = input_dir
         self.peak_threshold = peak_threshold
@@ -48,6 +53,7 @@ class VideoMontageConfig:
         self.min_count_of_peaks = min_count_of_peaks
         self.min_duration_of_valid_range = min_duration_of_valid_range
         self.extend_range_bounds_by_seconds = extend_range_bounds_by_seconds
+        self.mix_mic_audio_track = mix_mic_audio_track
 
     @property
     def video_bitrate(self):
@@ -286,15 +292,17 @@ def concat_ranges(filename, out_filename, ranges, config: VideoMontageConfig):
                 .filter_('atrim', start=start, end=end)
                 .filter_('asetpts', 'PTS-STARTPTS')
         )
-        mic = (
-            input_vid['a:1']
-                .filter_('atrim', start=start, end=end)
-                .filter_('asetpts', 'PTS-STARTPTS')
-        )
-        full_aud = ffmpeg.filter([aud, mic], 'amix', duration='shortest', weights=f'1 {config.mic_volume_multiplier}')
+
+        if config.mix_mic_audio_track:
+            mic = (
+                input_vid['a:1']
+                    .filter_('atrim', start=start, end=end)
+                    .filter_('asetpts', 'PTS-STARTPTS')
+            )
+            aud = ffmpeg.filter([aud, mic], 'amix', duration='shortest', weights=f'1 {config.mic_volume_multiplier}')
 
         streams.append(vid)
-        streams.append(full_aud)
+        streams.append(aud)
 
     joined = ffmpeg.concat(*streams, v=1, a=1)
     output = ffmpeg.output(joined, out_filename, vcodec='hevc_nvenc', video_bitrate=config.video_bitrate)
@@ -359,7 +367,8 @@ def log_video_ranges(ranges, filename, log):
 
 
 def cut_video_into_single(filename, config: VideoMontageConfig):
-    out_filename = os.path.join(config.output_dir, os.path.basename(filename))
+    out_filename = str(os.path.join(config.output_dir, os.path.basename(filename)))
+    out_filename = re.sub(r'\.[^.]+?$', '.mp4', out_filename)
 
     os.makedirs(os.path.dirname(out_filename), exist_ok=True)
 
@@ -377,8 +386,7 @@ def cut_video_into_single(filename, config: VideoMontageConfig):
     else:
         print_log(f"Found {len(sec_ranges)} for '{filename}'")
 
-        if not os.path.exists(config.output_dir):
-            os.makedirs(config.output_dir)
+        os.makedirs(config.output_dir, exist_ok=True)
 
         concat_ranges(filename, out_filename, sec_ranges, config=config)
 
