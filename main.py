@@ -1,16 +1,14 @@
-import ffmpeg
-from ffmpeg import Error
-import numpy as np
-from matplotlib import pyplot as plt
-from scipy.signal import find_peaks
-from matplotlib.pyplot import figure
 import math
 import os
-import time
 import re
-from matplotlib import mlab
+import time
 
-from peakdetect import peakdet
+import ffmpeg
+import numpy as np
+from ffmpeg import Error
+from matplotlib import mlab
+from matplotlib import pyplot as plt
+from scipy.signal import find_peaks
 
 ffmpeg_cmd = 'bin/ffmpeg.exe'
 
@@ -110,11 +108,11 @@ def make_fft(x, NFFT=None, Fs=None, Fc=None, detrend=None,
         raise ValueError('Cannot use dB scale with angle or phase mode')
 
     spec, _, _ = mlab.specgram(x=x, NFFT=NFFT, Fs=Fs,
-                                   detrend=detrend, window=window,
-                                   noverlap=noverlap, pad_to=pad_to,
-                                   sides=sides,
-                                   scale_by_freq=scale_by_freq,
-                                   mode=mode)
+                               detrend=detrend, window=window,
+                               noverlap=noverlap, pad_to=pad_to,
+                               sides=sides,
+                               scale_by_freq=scale_by_freq,
+                               mode=mode)
 
     return spec
 
@@ -168,8 +166,8 @@ def peak_ranges(audio, config: VideoMontageConfig, mult=1.0):
     if start != -1 and last != -1:
         ranges.append((start, last))
 
-    peaks = [int(x/mult) for x in peaks]
-    ranges = [(int(x/mult), int(y/mult)) for x, y in ranges]
+    peaks = [int(x / mult) for x in peaks]
+    ranges = [(int(x / mult), int(y / mult)) for x, y in ranges]
 
     return peaks, ranges
 
@@ -185,8 +183,8 @@ def plot_audio(filename, start, end, config: VideoMontageConfig):
         plot.plot(peaks, data[peaks], "x")
         starts = [x[0] for x in ranges]
         ends = [x[1] for x in ranges]
-        plot.plot(starts, [max(data) * 1.1]*len(starts), "g+")
-        plot.plot(ends, [max(data) * 1.1]*len(ends), "r+")
+        plot.plot(starts, [max(data) * 1.1] * len(starts), "g+")
+        plot.plot(ends, [max(data) * 1.1] * len(ends), "r+")
 
     plot_a = plt.subplot(411)
     show_data_and_peaks(plot_a, audio, *peak_ranges(audio, config=config))
@@ -204,7 +202,6 @@ def plot_audio(filename, start, end, config: VideoMontageConfig):
 
     plot_d = plt.subplot(414)
     show_data_and_peaks(plot_d, lows, *peak_ranges(lows, config=config))
-
 
     plt.show()
 
@@ -266,6 +263,31 @@ def cut_ranges(filename, ranges):
         count = count + 1
 
 
+def custom_ffmpeg_run(output, cmd):
+    full_cmd = ffmpeg.compile(output, cmd=cmd)
+    # print(' '.join([f'"{x}"' for x in full_cmd]))
+
+    filter_str = None
+    for i in range(0, len(full_cmd)):
+        x = full_cmd[i]
+        if x == '-filter_complex':
+            full_cmd[i] = '-filter_complex_script'
+            filter_str = full_cmd[i + 1]
+            full_cmd[i + 1] = 'filter.txt'
+
+    with open('filter.txt', 'w', encoding='utf8') as f:
+        f.write(filter_str)
+
+    # print(' '.join([f'"{x}"' for x in full_cmd]))
+    import subprocess
+    args = full_cmd
+    process = subprocess.Popen(args)
+    out, err = process.communicate(input)
+    retcode = process.poll()
+    if retcode:
+        raise Error('ffmpeg', out, err)
+
+
 def concat_ranges(filename, out_filename, ranges, config: VideoMontageConfig):
     """ ranges are in seconds """
 
@@ -310,8 +332,9 @@ def concat_ranges(filename, out_filename, ranges, config: VideoMontageConfig):
     output = ffmpeg.overwrite_output(output)
 
     start_time = time.time()
-    # print(' '.join([f'"{x}"' for x in ffmpeg.compile(output, cmd=ffmpeg_cmd)]).replace('/', '\\'))
-    output.run(cmd=ffmpeg_cmd)
+
+    custom_ffmpeg_run(output, ffmpeg_cmd)
+
     elapsed = time.time() - start_time
     print(f'Elapsed {elapsed:.2f} seconds\n')
 
@@ -332,8 +355,8 @@ def make_sec_ranges(filename, config: VideoMontageConfig):
         i = 0
         dropped = []
         while i < len(sec_ranges) - 1:
-            if sec_ranges[i][1] > sec_ranges[i+1][0]:
-                sec_ranges[i][1] = sec_ranges[i+1][1]
+            if sec_ranges[i][1] > sec_ranges[i + 1][0]:
+                sec_ranges[i][1] = sec_ranges[i + 1][1]
                 dropped.append(i + 1)
                 i += 1
             i += 1
@@ -406,17 +429,9 @@ def run_directory(config: VideoMontageConfig):
 
 
 if __name__ == "__main__":
-    pubg = VideoMontageConfig(
-        input_dir='E:/shadow play/replays/PLAYERUNKNOWN\'S BATTLEGROUNDS',
-        output_dir='vids/pubg',
-        bitrate_megabits=50,
-        mic_volume_multiplier=3,
-        peak_height=0.9,
-        peak_threshold=0.2)
-
     apex = VideoMontageConfig(
-        input_dir='E:/shadow play/replays/Apex Legends',
-        output_dir='vids/apex',
+        input_dir='D:\Videos\Apex Legends',
+        output_dir='vids\Apex Legends',
         bitrate_megabits=50,
         mic_volume_multiplier=3,
         peak_height=1.3,
