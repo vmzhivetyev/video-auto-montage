@@ -6,3 +6,4 @@ bin/ffplay.exe
 src
 venv2
 __pycache__
+filter.txt
