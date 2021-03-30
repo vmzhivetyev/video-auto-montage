@@ -433,8 +433,8 @@ def run_directory(config: VideoMontageConfig):
 
 if __name__ == "__main__":
     apex = VideoMontageConfig(
-        input_dir='D:\Videos\Apex Legends',
-        output_dir='vids\Apex Legends',
+        input_dir='E:/shadow play/replays/Apex Legends',
+        output_dir='vids/apex',
         bitrate_megabits=50,
         mic_volume_multiplier=3,
         freq_range=(0, 40),
