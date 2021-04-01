@@ -1,11 +1,12 @@
+import math
+import os
 import subprocess
+import time
 
 import ffmpeg
 import numpy as np
 from ffmpeg import Error
-import os
-import math
-import time
+
 from video_montage.video_montage_config import VideoMontageConfig
 
 
@@ -16,7 +17,7 @@ class FFmpegProcessor:
     ):
         self.path_to_ffmpeg_bin = path_to_ffmpeg_bin
 
-    def extract_audio(self, filename, sample_rate, format: str = 'f32le', acodec: str = 'pcm_f32le'):
+    def extract_audio(self, filename: str, sample_rate, format: str = 'f32le', acodec: str = 'pcm_f32le'):
         out, err = (
             ffmpeg
                 .input(filename)
