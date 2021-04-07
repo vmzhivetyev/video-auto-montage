@@ -2,6 +2,8 @@ import math
 import os
 import re
 import time
+from itertools import repeat
+from multiprocessing import Pool
 
 import ffmpeg
 import numpy as np
@@ -325,7 +327,6 @@ def concat_ranges(filename, out_filename, ranges, config: VideoMontageConfig):
                     .filter_('asetpts', 'PTS-STARTPTS')
             )
             aud = ffmpeg.filter([aud, mic], 'amix', duration='shortest', weights=f'1 {config.mic_volume_multiplier}')
-
         streams.append(vid)
         streams.append(aud)
 
@@ -427,14 +428,16 @@ def run_file(input_file, config: VideoMontageConfig):
 
 
 def run_directory(config: VideoMontageConfig):
-    for file in file_list_from_dir(config.input_dir):
-        run_file(input_file=file, config=config)
+    pool = Pool(2)
+    pool.starmap(run_file, zip(file_list_from_dir(config.input_dir), repeat(config)))
+    pool.close()
+    pool.join()
 
 
 if __name__ == "__main__":
-    apex = VideoMontageConfig(
-        input_dir='E:/shadow play/replays/Apex Legends',
-        output_dir='vids/apex',
+    apex = VideoMontager(VideoMontageConfig(
+        input_dir='D:\Videos\Apex Legends',
+        output_dir='vids\Apex Legends',
         bitrate_megabits=50,
         mic_volume_multiplier=3,
         freq_range=(0, 40),
@@ -448,13 +451,12 @@ if __name__ == "__main__":
 
     run_directory(config=apex)
 
-    pubg = VideoMontageConfig(
-        input_dir="E:\\ShadowPlay-old\\NvidiaReplays\\PLAYERUNKNOWN'S BATTLEGROUNDS",
-        output_dir='vids/pubg',
+    quake = VideoMontageConfig(
+        input_dir='D:\Videos\Quake Champions',
+        output_dir='vids\Quake Champions',
         bitrate_megabits=50,
-        mic_volume_multiplier=3,
-        freq_range=(10, 45),
-        peak_height=0.35,
+        mic_volume_multiplier=1,
+        peak_height=1.3,
         peak_threshold=0.1,
         max_seconds_between_peaks=2,
         min_count_of_peaks=1,
@@ -462,4 +464,5 @@ if __name__ == "__main__":
         mix_mic_audio_track=False,
     )
 
+    run_directory(config=quake)
 
