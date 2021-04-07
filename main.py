@@ -21,11 +21,13 @@ if __name__ == "__main__":
         output_dir='vids\Quake Champions',
         bitrate_megabits=50,
         mic_volume_multiplier=1,
+        freq_range=(0, 40),
         peak_height=1.3,
         peak_threshold=0.1,
         max_seconds_between_peaks=2,
         min_count_of_peaks=1,
         extend_range_bounds_by_seconds=1,
-        min_duration_of_valid_range=0
-        mix_mic_audio_track=False,
+        min_duration_of_valid_range=0,
+        mix_mic_audio_track=False
+    ))
     quake.run_directory()

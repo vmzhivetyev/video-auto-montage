@@ -16,7 +16,7 @@ class SegmentsBuilder:
         return mlab.specgram(x=x, NFFT=self.nfft, Fs=self.config.sample_rate)[0]
 
     def _get_lows_from_fft(self, speq):
-        speq = np.array([x[:40] for x in speq.T]).T
+        speq = np.array([x[self.config.freq_range[0]: self.config.freq_range[1]] for x in speq.T]).T
         low_freq_volumes = np.array([sum(x) * 1000 for x in speq.T]).T
         return low_freq_volumes
 

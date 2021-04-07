@@ -8,6 +8,7 @@ class VideoMontageConfig:
                  mic_volume_multiplier: float = 3,
                  peak_height: float = 0.9,
                  peak_threshold: float = 0.15,
+                 freq_range=(0, 40),
                  max_seconds_between_peaks: float = 4,
                  min_count_of_peaks: int = 2,
                  min_duration_of_valid_range: float = 1,
@@ -18,6 +19,7 @@ class VideoMontageConfig:
         :param output_dir:
         :param bitrate_megabits:
         :param mic_volume_multiplier:
+        :param freq_range: range of frequencies to sum volume of
         :param peak_height:
         :param peak_threshold:
         :param max_seconds_between_peaks: distance between peaks to unite them to single time range
@@ -32,6 +34,7 @@ class VideoMontageConfig:
         self.peak_threshold = peak_threshold
         self.peak_height = peak_height
         self.mic_volume_multiplier = mic_volume_multiplier
+        self.freq_range = freq_range
         self.bitrate_megabits = bitrate_megabits
         self.output_dir = output_dir
         self.max_seconds_between_peaks = max_seconds_between_peaks
