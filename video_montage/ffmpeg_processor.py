@@ -2,12 +2,14 @@ import math
 import os
 import subprocess
 import time
+import random
 
 import ffmpeg
 import numpy as np
 from ffmpeg import Error
 
 from video_montage.video_montage_config import VideoMontageConfig
+from video_montage.utils import file_list_from_dir
 
 
 class FFmpegProcessor:
@@ -60,7 +62,10 @@ class FFmpegProcessor:
 
         streams = []
 
-        for r in ranges:
+        random.seed(filename)
+        music_list = file_list_from_dir('music')
+
+        for i, r in enumerate(ranges):
             start = int(r[0])
             end = math.floor(r[1])
 
@@ -83,6 +88,12 @@ class FFmpegProcessor:
                 )
                 aud = ffmpeg.filter([aud, mic], 'amix', duration='shortest',
                                     weights=f'1 {config.mic_volume_multiplier}')
+
+            if config.mix_music:
+                mus = ffmpeg.input(random.choice(music_list)).audio
+                aud = ffmpeg.filter([aud, mus], 'amix', duration='first',
+                                    weights=f'1 0.5')
+
             streams.append(vid)
             streams.append(aud)
 

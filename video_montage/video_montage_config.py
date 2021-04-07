@@ -13,7 +13,8 @@ class VideoMontageConfig:
                  min_count_of_peaks: int = 2,
                  min_duration_of_valid_range: float = 1,
                  extend_range_bounds_by_seconds: float = 2,
-                 mix_mic_audio_track: bool = True):
+                 mix_mic_audio_track: bool = True,
+                 mix_music: bool = True):
         '''
         :param input_dir:
         :param output_dir:
@@ -42,6 +43,7 @@ class VideoMontageConfig:
         self.min_duration_of_valid_range = min_duration_of_valid_range
         self.extend_range_bounds_by_seconds = extend_range_bounds_by_seconds
         self.mix_mic_audio_track = mix_mic_audio_track
+        self.mix_music = mix_music
 
     @property
     def video_bitrate(self):
