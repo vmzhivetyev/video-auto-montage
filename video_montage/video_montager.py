@@ -40,9 +40,6 @@ class VideoMontager:
 
             ffmpeg_processor.montage(input_filepath, out_filename, ranges=sec_ranges, config=self.config)
 
-    def file_list_from_dir(self, dir_path):
-        return [os.path.join(dir_path, x) for x in os.listdir(dir_path)]
-
     def run_file(self, filepath):
         self.cut_video_into_single(input_filepath=filepath)
 

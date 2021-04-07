@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
 from video_montage.ffmpeg_processor import FFmpegProcessor
 from video_montage.segments_builder import SegmentsBuilder
@@ -55,3 +56,7 @@ def audio_range(sample_rate, start_time=(0, 0), end_time=(0, 10)):
 
 def sec_to_time(sec):
     return int(sec / 60), sec % 60
+
+
+def file_list_from_dir(dir_path):
+    return [os.path.join(dir_path, x) for x in os.listdir(dir_path)]
