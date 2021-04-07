@@ -2,21 +2,21 @@ import numpy as np
 from matplotlib import mlab
 from scipy.signal import find_peaks
 
-from video_montage.video_montage_config import VideoMontageConfig
+from video_montage.video_montage_config import MontageConfig
 
 
 class SegmentsBuilder:
     nfft = 256
     noverlap = 100
 
-    def __init__(self, config: VideoMontageConfig):
+    def __init__(self, config: MontageConfig):
         self.config = config
 
     def _make_fft(self, x):
         return mlab.specgram(x=x, NFFT=self.nfft, Fs=self.config.sample_rate)[0]
 
     def _get_lows_from_fft(self, speq):
-        speq = np.array([x[self.config.freq_range[0]: self.config.freq_range[1]] for x in speq.T]).T
+        speq = np.array([x[self.config.detection.freq_range[0]: self.config.detection.freq_range[1]] for x in speq.T]).T
         low_freq_volumes = np.array([sum(x) * 1000 for x in speq.T]).T
         return low_freq_volumes
 
@@ -35,9 +35,9 @@ class SegmentsBuilder:
 
             :returns array of valid ranges
         """
-        peaks, _ = find_peaks(audio, height=self.config.peak_height, threshold=self.config.peak_threshold)
+        peaks, _ = find_peaks(audio, height=self.config.detection.peak_height, threshold=self.config.detection.peak_threshold)
 
-        max_distance = int(self.config.max_seconds_between_peaks * self.config.sample_rate * mult)
+        max_distance = int(self.config.range.min_distance * self.config.sample_rate * mult)
 
         ranges = []
         start = -1
@@ -54,7 +54,7 @@ class SegmentsBuilder:
                     last = x
                     count = count + 1
                 else:
-                    if count >= self.config.min_count_of_peaks:
+                    if count >= self.config.detection.min_peaks_in_a_row:
                         ranges.append((start, last))
                     start = x
                     last = x
@@ -69,7 +69,7 @@ class SegmentsBuilder:
         return peaks, ranges
 
     def _filter_ranges(self, ranges):
-        min_length = int(self.config.min_duration_of_valid_range * self.config.sample_rate)
+        min_length = int(self.config.range.min_duration * self.config.sample_rate)
 
         return [x for x in ranges if x[1] - x[0] >= min_length]
 
@@ -92,8 +92,8 @@ class SegmentsBuilder:
 
         sec_ranges = [(x[0] / self.config.sample_rate, x[1] / self.config.sample_rate) for x in ranges]
 
-        sec_ranges = [[x[0] - self.config.extend_range_bounds_by_seconds,
-                       x[1] + self.config.extend_range_bounds_by_seconds]
+        sec_ranges = [[x[0] - self.config.range.extend_before_start,
+                       x[1] + self.config.range.extend_after_end]
                       for x in sec_ranges]
 
         new_ranges = self._weld_overlapping_ranges(sec_ranges)

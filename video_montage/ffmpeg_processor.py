@@ -8,7 +8,7 @@ import ffmpeg
 import numpy as np
 from ffmpeg import Error
 
-from video_montage.video_montage_config import VideoMontageConfig
+from video_montage.video_montage_config import MontageConfig
 from video_montage.utils import file_list_from_dir
 
 
@@ -50,7 +50,7 @@ class FFmpegProcessor:
         if retcode:
             raise Error('ffmpeg', out, err)
 
-    def montage(self, filename: str, out_filename, ranges, config: VideoMontageConfig):
+    def montage(self, filename: str, out_filename, ranges, config: MontageConfig):
         """ ranges are in seconds """
 
         assert os.path.isfile(filename)
@@ -62,7 +62,7 @@ class FFmpegProcessor:
 
         streams = []
 
-        if config.music_random_seed_by_file:
+        if config.music.random_seed_by_file:
             random.seed(filename.__hash__() + 30)
         music_list = file_list_from_dir('music')
 
@@ -81,27 +81,27 @@ class FFmpegProcessor:
                     .filter_('asetpts', 'PTS-STARTPTS')
             )
 
-            if config.mix_mic_audio_track:
+            if config.microphone.mix_mic_audio_track:
                 mic = (
                     input_vid['a:1']
                         .filter_('atrim', start=start, end=end)
                         .filter_('asetpts', 'PTS-STARTPTS')
                 )
                 aud = ffmpeg.filter([aud, mic], 'amix', duration='shortest',
-                                    weights=f'1 {config.mic_volume_multiplier}')
+                                    weights=f'1 {config.microphone.mic_volume_multiplier}')
 
-            if config.music_chance > 0 and random.random() < config.music_chance:
+            if config.music.chance > 0 and random.random() < config.music.chance:
                 mus = ffmpeg.input(random.choice(music_list)).audio
                 aud = ffmpeg.filter([aud, mus], 'amix', duration='first',
-                                    weights=f'1 0.2')
+                                    weights=f'1 {config.music.volume}')
 
             streams.append(vid)
             streams.append(aud)
 
         joined = ffmpeg.concat(*streams, v=1, a=1)
-        output = ffmpeg.output(joined, out_filename, vcodec='hevc_nvenc', video_bitrate=config.video_bitrate)
+        output = ffmpeg.output(joined, out_filename, vcodec='hevc_nvenc', video_bitrate=config.video.bitrate)
         output = output.global_args('-loglevel', 'error')
-        output = ffmpeg.overwrite_output(output)
+        # output = ffmpeg.overwrite_output(output)
 
         start_time = time.time()
 

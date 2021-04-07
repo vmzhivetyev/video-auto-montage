@@ -4,10 +4,10 @@ import os
 
 # from video_montage.ffmpeg_processor import FFmpegProcessor
 # from video_montage.segments_builder import SegmentsBuilder
-# from video_montage.video_montage_config import VideoMontageConfig
+# from video_montage.video_montage_config import MontageConfig
 
 
-# def plot_audio(filename, start, end, config: VideoMontageConfig):
+# def plot_audio(filename, start, end, config: MontageConfig):
 #     segments_builder = SegmentsBuilder(config)
 #     ffmpeg_processor = FFmpegProcessor()
 #

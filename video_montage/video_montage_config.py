@@ -1,52 +1,67 @@
-class VideoMontageConfig:
-    sample_rate = 44100
+from dataclasses import dataclass
+from typing import Tuple
 
-    def __init__(self,
-                 input_dir: str,
-                 output_dir: str,
-                 bitrate_megabits: float = 50.0,
-                 mic_volume_multiplier: float = 3,
-                 peak_height: float = 0.9,
-                 peak_threshold: float = 0.15,
-                 freq_range=(0, 40),
-                 max_seconds_between_peaks: float = 4,
-                 min_count_of_peaks: int = 2,
-                 min_duration_of_valid_range: float = 1,
-                 extend_range_bounds_by_seconds: float = 2,
-                 mix_mic_audio_track: bool = True,
-                 music_chance: float = 0.5,
-                 music_random_seed_by_file: bool = False):
-        '''
-        :param input_dir:
-        :param output_dir:
-        :param bitrate_megabits:
-        :param mic_volume_multiplier:
-        :param freq_range: range of frequencies to sum volume of
-        :param peak_height:
-        :param peak_threshold:
-        :param max_seconds_between_peaks: distance between peaks to unite them to single time range
-        :param min_count_of_peaks: if count of peaks in range is less than this value than the range is ignored
-        :param min_duration_of_valid_range
-        :param extend_range_bounds_by_seconds
-        :param mix_mic_audio_track:
-            if True - mix second audio track into resulting video
-            (shadow play can record your mic into separate audio track)
-        '''
-        self.input_dir = input_dir
-        self.peak_threshold = peak_threshold
-        self.peak_height = peak_height
-        self.mic_volume_multiplier = mic_volume_multiplier
-        self.freq_range = freq_range
-        self.bitrate_megabits = bitrate_megabits
-        self.output_dir = output_dir
-        self.max_seconds_between_peaks = max_seconds_between_peaks
-        self.min_count_of_peaks = min_count_of_peaks
-        self.min_duration_of_valid_range = min_duration_of_valid_range
-        self.extend_range_bounds_by_seconds = extend_range_bounds_by_seconds
-        self.mix_mic_audio_track = mix_mic_audio_track
-        self.music_chance = music_chance
-        self.music_random_seed_by_file = music_random_seed_by_file
+
+@dataclass(frozen=True)
+class VideoConfig:
+    bitrate_megabits: float = 50
 
     @property
-    def video_bitrate(self):
+    def bitrate(self):
         return str(int(self.bitrate_megabits * 1e6))
+
+
+@dataclass(frozen=True)
+class PeakDetectionConfig:
+    peak_height: float = 0.9
+    peak_threshold: float = 0.15
+    freq_range: Tuple[int, int] = (0, 40)
+    min_peaks_in_a_row: int = 2
+
+
+@dataclass(frozen=True)
+class RangeConfig:
+    min_duration: float = 1
+    min_distance: float = 4
+    extend_before_start: float = 2
+    extend_after_end: float = 2
+
+
+@dataclass(frozen=True)
+class MicrophoneConfig:
+    mic_volume_multiplier: float = 3
+    mix_mic_audio_track: bool = True
+
+
+@dataclass(frozen=True)
+class MusicConfig:
+    chance: float = 0.5
+    volume: float = 0.3
+    random_seed_by_file: bool = False
+
+
+@dataclass(frozen=True)
+class MontageConfig:
+    sample_rate = 44100
+    input_dir: str
+    output_dir: str
+    video: VideoConfig
+    detection: PeakDetectionConfig
+    range: RangeConfig
+    microphone: MicrophoneConfig
+    music: MusicConfig
+    '''
+    :param input_dir:
+    :param output_dir:
+    :param mic_volume_multiplier:
+    :param freq_range: range of frequencies to sum volume of
+    :param peak_height:
+    :param peak_threshold:
+    :param min_distance: distance between peaks to unite them to single time range
+    :param min_peaks_in_a_row: if count of peaks in range is less than this value than the range is ignored
+    :param min_duration
+    :param extend_range_bounds_by_seconds
+    :param mix_mic_audio_track:
+        if True - mix second audio track into resulting video
+        (shadow play can record your mic into separate audio track)
+    '''

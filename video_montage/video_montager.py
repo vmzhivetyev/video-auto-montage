@@ -4,11 +4,11 @@ from glob import glob
 
 from video_montage.ffmpeg_processor import FFmpegProcessor
 from video_montage.segments_builder import SegmentsBuilder
-from video_montage.video_montage_config import VideoMontageConfig
+from video_montage.video_montage_config import MontageConfig
 
 
 class VideoMontager:
-    def __init__(self, config: VideoMontageConfig):
+    def __init__(self, config: MontageConfig):
         self.config = config
         self.ffmpeg_processor = FFmpegProcessor()
         self.segments_builder = SegmentsBuilder(config)
