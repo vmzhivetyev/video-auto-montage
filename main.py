@@ -21,12 +21,13 @@ if __name__ == "__main__":
         ),
         microphone=MicrophoneConfig(
             mic_volume_multiplier=3,
+            # When True - FFMPEG will crash if source video file has only one audio track.
             mix_mic_audio_track=True
         ),
         music=MusicConfig(
-            chance=0.5,
+            chance=0.9,
             volume=0.3,
-            random_seed_by_file=False
+            random_seed_by_file=True
         ))
 
     apex = VideoMontager(apex)
