@@ -50,7 +50,7 @@ class FFmpegProcessor:
         if retcode:
             raise Error('ffmpeg', out, err)
 
-    def montage(self, filename, out_filename, ranges, config: VideoMontageConfig):
+    def montage(self, filename: str, out_filename, ranges, config: VideoMontageConfig):
         """ ranges are in seconds """
 
         assert os.path.isfile(filename)
@@ -62,7 +62,8 @@ class FFmpegProcessor:
 
         streams = []
 
-        random.seed(filename)
+        if config.music_random_seed_by_file:
+            random.seed(filename.__hash__() + 30)
         music_list = file_list_from_dir('music')
 
         for i, r in enumerate(ranges):
@@ -89,10 +90,10 @@ class FFmpegProcessor:
                 aud = ffmpeg.filter([aud, mic], 'amix', duration='shortest',
                                     weights=f'1 {config.mic_volume_multiplier}')
 
-            if config.mix_music:
+            if config.music_chance > 0 and random.random() < config.music_chance:
                 mus = ffmpeg.input(random.choice(music_list)).audio
                 aud = ffmpeg.filter([aud, mus], 'amix', duration='first',
-                                    weights=f'1 0.5')
+                                    weights=f'1 0.2')
 
             streams.append(vid)
             streams.append(aud)

@@ -14,7 +14,8 @@ class VideoMontageConfig:
                  min_duration_of_valid_range: float = 1,
                  extend_range_bounds_by_seconds: float = 2,
                  mix_mic_audio_track: bool = True,
-                 mix_music: bool = True):
+                 music_chance: float = 0.5,
+                 music_random_seed_by_file: bool = False):
         '''
         :param input_dir:
         :param output_dir:
@@ -43,7 +44,8 @@ class VideoMontageConfig:
         self.min_duration_of_valid_range = min_duration_of_valid_range
         self.extend_range_bounds_by_seconds = extend_range_bounds_by_seconds
         self.mix_mic_audio_track = mix_mic_audio_track
-        self.mix_music = mix_music
+        self.music_chance = music_chance
+        self.music_random_seed_by_file = music_random_seed_by_file
 
     @property
     def video_bitrate(self):
