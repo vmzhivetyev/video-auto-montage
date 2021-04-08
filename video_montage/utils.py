@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
+from pathlib import Path
+
 # from video_montage.ffmpeg_processor import FFmpegProcessor
 # from video_montage.segments_builder import SegmentsBuilder
 # from video_montage.video_montage_config import MontageConfig
@@ -58,6 +60,9 @@ def sec_to_time(sec):
     return int(sec / 60), sec % 60
 
 
-def file_list_from_dir(dir_path):
+def file_list_from_dir(dir_path, recursive=False):
+    if recursive:
+        return [str(x) for x in list(Path(dir_path).rglob('*')) if x.is_file()]
+
     return [x for x in [os.path.join(dir_path, x) for x in os.listdir(dir_path)]
             if os.path.isfile(x)]

@@ -64,7 +64,7 @@ class FFmpegProcessor:
 
         if config.music.random_seed_by_file:
             random.seed(filename.__hash__() + 30)
-        music_list = file_list_from_dir('music')
+        music_list = file_list_from_dir('music', recursive=True)
 
         for i, r in enumerate(ranges):
             start = int(r[0])

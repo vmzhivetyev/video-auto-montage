@@ -10,12 +10,12 @@ if __name__ == "__main__":
         detection=PeakDetectionConfig(
             peak_height=1.3,
             peak_threshold=0.1,
-            freq_range=(0, 40),
+            freq_range=(0, 30),
             min_peaks_in_a_row=1
         ),
         range=RangeConfig(
-            min_distance=2,
-            extend_before_start=1,
+            min_distance=1,
+            extend_before_start=0.5,
             extend_after_end=1.5,
             min_duration=0
         ),
@@ -25,9 +25,9 @@ if __name__ == "__main__":
             mix_mic_audio_track=True
         ),
         music=MusicConfig(
-            chance=0.9,
+            chance=1,
             volume=0.3,
-            random_seed_by_file=True
+            random_seed_by_file=False
         ))
 
     apex = VideoMontager(apex)

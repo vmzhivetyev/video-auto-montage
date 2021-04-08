@@ -5,6 +5,7 @@ from glob import glob
 from video_montage.ffmpeg_processor import FFmpegProcessor
 from video_montage.segments_builder import SegmentsBuilder
 from video_montage.video_montage_config import MontageConfig
+from video_montage.utils import file_list_from_dir
 
 
 class VideoMontager:
@@ -16,6 +17,7 @@ class VideoMontager:
     def cut_video_into_single(self, input_filepath):
         if not os.path.isfile(input_filepath):
             print(f'Skipped "{input_filepath}" is not a file.')
+            return
 
         out_filename = str(os.path.join(self.config.output_dir, os.path.basename(input_filepath)))
         out_filename = re.sub(r'\.[^.]+?$', '.mp4', out_filename)
@@ -47,5 +49,5 @@ class VideoMontager:
         self.cut_video_into_single(input_filepath=filepath)
 
     def run_directory(self):
-        for filepath in glob(os.path.join(self.config.input_dir, '*')):
+        for filepath in file_list_from_dir(self.config.input_dir):
             self.run_file(filepath)
