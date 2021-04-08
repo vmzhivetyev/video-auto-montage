@@ -14,6 +14,9 @@ class VideoMontager:
         self.segments_builder = SegmentsBuilder(config)
 
     def cut_video_into_single(self, input_filepath):
+        if not os.path.isfile(input_filepath):
+            print(f'Skipped "{input_filepath}" is not a file.')
+
         out_filename = str(os.path.join(self.config.output_dir, os.path.basename(input_filepath)))
         out_filename = re.sub(r'\.[^.]+?$', '.mp4', out_filename)
 

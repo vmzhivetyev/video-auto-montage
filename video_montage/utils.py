@@ -59,4 +59,5 @@ def sec_to_time(sec):
 
 
 def file_list_from_dir(dir_path):
-    return [os.path.join(dir_path, x) for x in os.listdir(dir_path)]
+    return [x for x in [os.path.join(dir_path, x) for x in os.listdir(dir_path)]
+            if os.path.isfile(x)]
