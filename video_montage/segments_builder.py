@@ -77,7 +77,7 @@ class SegmentsBuilder:
         i = 0
         dropped = []
         while i < len(sec_ranges) - 1:
-            if sec_ranges[i][1] > sec_ranges[i + 1][0]:
+            if sec_ranges[i][1] + self.config.range.min_distance > sec_ranges[i + 1][0]:
                 sec_ranges[i][1] = sec_ranges[i + 1][1]
                 dropped.append(i + 1)
                 i += 1
