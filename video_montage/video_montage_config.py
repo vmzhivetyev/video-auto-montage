@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Optional, Tuple
 
 
 @dataclass(frozen=True)
@@ -15,7 +15,7 @@ class VideoConfig:
 class PeakDetectionConfig:
     peak_height: float = 0.9
     peak_threshold: float = 0.15
-    freq_range: Tuple[int, int] = (0, 40)
+    freq_range: Optional[Tuple[int, int]] = (0, 40)
     min_peaks_in_a_row: int = 2
 
 
