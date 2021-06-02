@@ -23,6 +23,7 @@ class FFmpegProcessor:
         out, err = (
             ffmpeg
                 .input(filename)
+                .audio
                 .output('-', format=format, acodec=acodec, ac=1, ar=str(sample_rate))
                 .run(cmd=self.path_to_ffmpeg_bin, capture_stdout=True, capture_stderr=True)
         )
